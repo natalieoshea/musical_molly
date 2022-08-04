@@ -1,0 +1,124 @@
+---
+title: "Untitled"
+author: "Natalie O'Shea"
+date: "2022-08-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Data
+
+```{r message=FALSE, warning=FALSE}
+# load libraries
+library(tidyverse)
+
+# pull and clean up data
+music_data <- read_csv("music_data.csv") |>
+  magrittr::set_colnames(c("date","recommendation","artist","album","score","favorite_song")) |>
+  mutate(date = as.Date(date, "%m/%d/%y"),
+         category = case_when(
+           score <= 50 ~ "poor",
+           score > 50 & score <= 60 ~ "average",
+           score > 60 & score <= 70 ~ "okay",
+           score > 70 & score <= 80 ~ "good",
+           score > 80 & score <= 90 ~ "great",
+           score > 90 & score <= 100 ~ "superior",
+         ),
+         category = factor(category, levels = c("poor", "average", "okay",
+                                                "good", "great", "superior")))
+
+# check data structure
+glimpse(music_data)
+```
+
+# EDA
+
+```{r}
+music_data |>
+  group_by(artist) |>
+  summarize(num_albums = n()) |>
+  arrange(desc(num_albums))
+```
+
+4 Marianas Trench Albums?? Someone's angsty.
+
+```{r}
+music_data |>
+  summarize(avg = mean(score),
+            min = min(score),
+            max = max(score))
+```
+
+An average score of 69... damn, you're a tough crowd.
+
+# Data Visualization
+
+```{r}
+theme_custom <- function(...) {
+  # default minimal theme
+  theme_minimal() +
+    # set additional custom theme options
+    theme(
+      # add some padding below title/subtitle
+      plot.title = element_text(margin = margin(0, 0, 5, 0), face = "bold"),
+      plot.subtitle = element_text(margin = margin(0, 0, 15, 0)),
+      plot.caption = element_text(margin = margin(15, 0, 0, 0)),
+      # align title and subtitle with plot margins
+      plot.title.position = "plot",
+      # set background color
+      plot.background = element_rect(fill = "grey90"),
+      panel.background = element_rect(fill = "grey90",
+                                      # make bounding box grey too
+                                      colour = "grey90"),
+      # change color of panel grid to white
+      panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                      colour = "white"),
+      panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                      colour = "white"),
+      # set to mono font for fun and make dark grey
+      text = element_text(family = "mono", color = "grey20"),
+      ...
+    )
+}
+
+# save cute color hex codes
+red <- "#F87977"
+orange <- "#F6B53C"
+yellow <- "#FFE338"
+green <- "#59CD90"
+blue <- "#3FA7D6"
+purple <- "#B042FF"
+```
+
+
+```{r}
+music_data |>
+  ggplot(aes(score, fill = category)) +
+  geom_histogram(binwidth = 5,
+                 boundary = 0) +
+  scale_fill_manual(values = c(red, orange, yellow, green, blue, purple),
+                    guide = guide_legend(reverse = TRUE)) +
+  labs(title = "molly's album ratings") +
+  theme_custom() +
+  theme(axis.title = element_blank())
+```
+
+```{r}
+music_data |>
+  mutate(month = format(date, "%b %y")) |>
+  filter(month != "Jul 22") |>
+  ggplot(aes(x = date, y = score)) +
+  geom_line(color = "grey20", alpha = .5) +
+  geom_point(aes(color = category)) +
+  scale_color_manual(values = c(red, orange, yellow, green, blue, purple),
+                     guide = guide_legend(reverse = TRUE)) +
+  facet_wrap(~reorder(month, lubridate::my(month)), scales = "free_x") +
+  labs(title = "molly's album ratings") +
+  theme_custom() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank())
+```
+
