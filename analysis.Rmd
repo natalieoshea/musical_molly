@@ -121,4 +121,3 @@ music_data |>
   theme(axis.title = element_blank(),
         axis.text = element_blank())
 ```
-
